@@ -1,54 +1,45 @@
-# Implementation Plan - Hierarchical Study & Unified Library
+# Implementation Plan - Stability, Stats & Persistent Local Storage
 
-This plan addresses UI gaps in the library hierarchy, fixes the "Add Flashcard" workflow, and refines the "Play Now" science-based study modes.
+This plan addresses the current crashes, revamps the statistics UI, and refactors the data storage to use visible local files on the device storage.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Library Unified View**: I will merge Folders (Categories) and Files (Flashcards) into a single list. When you open a Chapter or Topic, you will see both sub-folders and the flashcards within that folder.
+> **External Database Storage**: I will move the Room database from the private app directory to a public folder (e.g., `/Documents/Memorizer/`). This requires the `MANAGE_EXTERNAL_STORAGE` or `READ_EXTERNAL_STORAGE/WRITE_EXTERNAL_STORAGE` permissions. This ensures your data is accessible as a file and persists even if the app is uninstalled.
 
-> [!TIP]
-> **Context-Aware Adding**: When you click the `+` button, the app will now know exactly which folder you are currently viewing. New flashcards and sub-folders will be automatically placed into that directory.
+> [!NOTE]
+> **Stats List Revamp**: I am replacing the text-based stage summary with a professional list. This will remove the "+16d" notation and provide a clearer view of your academic progress using a scrollable list of memory stages.
 
 ## Proposed Changes
 
-### 1. Unified Library Hierarchy
-- **[NEW] `LibraryItem.java`**: A wrapper class/interface to handle both `Category` and `Flashcard` objects in the same list.
+### 1. Stability & Threading Fixes
 - **[MODIFY] `LibraryFragment.java`**:
-    - Update to observe both Sub-Categories and Flashcards for the current `categoryId`.
-    - Pass the current `parentId` to the `MainActivity` so the FAB knows where to add new items.
-- **[MODIFY] `CategoryAdapter.java` ➔ `LibraryAdapter.java`**:
-    - Support two view types: `FOLDER` and `FILE`.
-    - Display card counts and mastery for folders.
-    - Display the question/answer and a "Due" badge for flashcards.
+    - Wrap all post-operation UI refreshes in `refreshUI()` using `runOnUiThread`.
+    - Ensure breadcrumbs and folder study buttons are only updated on the Main Thread.
 
-### 2. Context-Aware Add & Fixes
+### 2. Stats Dashboard Revamp
+- **[NEW] `MemoryStage.java`**: UI model for the stats list.
+- **[NEW] `MemoryStageAdapter.java`**: Adapter to display 6 retention levels (1h, 4h, 24h, 3d, 7d, 16d).
+- **[MODIFY] `fragment_stats.xml`**: Replace the static stage text with a `RecyclerView`.
+- **[MODIFY] `StatsFragment.java`**: Populate the list with real data from the hierarchical stats engine.
+
+### 3. Public File Storage (All Data)
+- **[MODIFY] `AppDatabase.java`**:
+    - Refactor `getDatabase` to use a custom file path pointing to the device's `Documents/Memorizer` directory.
+    - Implement a helper to ensure the directory exists before building the database.
+- **[MODIFY] `AndroidManifest.xml`**: Add storage permissions.
+
+### 4. Backup & Portability
 - **[MODIFY] `MainActivity.java`**:
-    - Maintain a `currentPathId` state based on fragment navigation.
-    - Update the "Add Flashcard" and "Add Category" actions to use this ID.
-- **[MODIFY] `AddFlashcardActivity.java`**:
-    - Remove the manual `Category` text input.
-    - Fix the validation error by ensuring `categoryId` is correctly passed and handled.
-- **[MODIFY] `CategoryDao.java`**: Add a query to count cards within a specific topic for numbering.
-
-### 3. "Play Now" Study Modes Upgrade
-- **[MODIFY] `StudyActivity.java`**:
-    - Refine the mode selection dialog to show two clear science-based options:
-        1. **Practice Mode**: Study all cards (including those not due) without altering their next review schedule.
-        2. **Study Ahead**: Study early and progress the SRS stages immediately.
-    - Add card numbering (e.g., "Card 5 of 20") to the study UI.
-
-### 4. UI Polish & Academic Mastery
-- Add mastery ratings to all levels of sub-categories.
-- Improve typography and spacing for a "Modern" look.
+    - Add an "Export All to JSON" option in the FAB menu.
+    - This allows you to manually save "All Data" as a readable text file anywhere on your device.
 
 ## Verification Plan
 
 ### Automated Tests
-- Test hierarchical folder creation: Verify a new category added inside "Math" has the correct `parentId`.
-- Test SRS track jumps in "Study Ahead" vs "Practice" mode.
+- None.
 
 ### Manual Verification
-- **Drill-down**: Navigate to a Topic and verify both sub-topics and flashcards are visible.
-- **Adding**: Add a card from within "Topic A" and verify it appears immediately in that topic.
-- **Play Now**: Start a session before cards are due, pick "Practice", and verify the Home screen countdown doesn't change.
+- **Move Test**: Verify flashcards move between folders without crashing.
+- **File Explorer**: Use the Android Files app to verify `memorizer_database` exists in the `Documents/Memorizer` folder.
+- **Stats View**: Verify the new memory stages list is accurate and scrollable.

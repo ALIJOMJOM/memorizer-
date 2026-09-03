@@ -25,8 +25,8 @@ public class LibraryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     public interface OnItemClickListener {
         void onFolderClick(Category category);
-        void onFileEdit(Flashcard flashcard);
-        void onFileDelete(Flashcard flashcard);
+        void onFolderOptions(Category category, View anchor);
+        void onFileOptions(Flashcard flashcard, View anchor);
     }
 
     private List<LibraryItem> items;
@@ -85,6 +85,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         holder.progressBar.setProgress(progress);
         
         holder.itemView.setOnClickListener(v -> listener.onFolderClick(category));
+        holder.btnOptions.setOnClickListener(v -> listener.onFolderOptions(category, v));
     }
 
     private void bindFile(FileViewHolder holder, Flashcard card, int position) {
@@ -93,8 +94,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         holder.tvAnswer.setText(card.getAnswer());
         holder.tvCategory.setVisibility(View.GONE); // Already inside category
         
-        holder.btnEdit.setOnClickListener(v -> listener.onFileEdit(card));
-        holder.btnDelete.setOnClickListener(v -> listener.onFileDelete(card));
+        holder.btnOptions.setOnClickListener(v -> listener.onFileOptions(card, v));
     }
 
     @Override
@@ -105,6 +105,7 @@ public class LibraryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     static class FolderViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvStats, tvMastery;
         ProgressBar progressBar;
+        View btnOptions;
 
         FolderViewHolder(View itemView) {
             super(itemView);
@@ -112,20 +113,20 @@ public class LibraryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             tvStats = itemView.findViewById(R.id.tv_stats);
             tvMastery = itemView.findViewById(R.id.tv_mastery_badge);
             progressBar = itemView.findViewById(R.id.progress_category);
+            btnOptions = itemView.findViewById(R.id.btn_folder_options);
         }
     }
 
     static class FileViewHolder extends RecyclerView.ViewHolder {
         TextView tvQuestion, tvAnswer, tvCategory;
-        View btnEdit, btnDelete;
+        View btnOptions;
 
         FileViewHolder(View itemView) {
             super(itemView);
             tvQuestion = itemView.findViewById(R.id.tv_question);
             tvAnswer = itemView.findViewById(R.id.tv_answer);
             tvCategory = itemView.findViewById(R.id.tv_category);
-            btnEdit = itemView.findViewById(R.id.btn_edit);
-            btnDelete = itemView.findViewById(R.id.btn_delete);
+            btnOptions = itemView.findViewById(R.id.btn_file_options);
         }
     }
 }

@@ -22,7 +22,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONException;
 
+import android.os.Environment;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
@@ -77,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showImportOptionsDialog() {
-        String[] options = {"Pick JSON File", "Paste JSON Text", "Add New Category", "Add New Flashcard"};
+        String[] options = {"Pick JSON File", "Paste JSON Text", "Add New Category", "Add New Flashcard", "Export All Data (Backup)"};
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Import or Add Content")
                 .setItems(options, (dialog, which) -> {
@@ -91,9 +93,55 @@ public class MainActivity extends AppCompatActivity {
                         Intent intent = new Intent(this, AddFlashcardActivity.class);
                         if (currentCategoryId != -1) intent.putExtra("categoryId", currentCategoryId);
                         startActivity(intent);
+                    } else if (which == 4) {
+                        exportAllData();
                     }
                 })
                 .show();
+    }
+
+    private void exportAllData() {
+        new Thread(() -> {
+            try {
+                AppDatabase db = AppDatabase.getDatabase(this);
+                List<com.ajj.memorizer.data.Category> categories = db.categoryDao().getAllCategoriesSync();
+                List<com.ajj.memorizer.data.Flashcard> flashcards = db.flashcardDao().getAllCardsSync();
+
+                org.json.JSONObject root = new org.json.JSONObject();
+                org.json.JSONArray catsArray = new org.json.JSONArray();
+                for (com.ajj.memorizer.data.Category c : categories) {
+                    org.json.JSONObject cObj = new org.json.JSONObject();
+                    cObj.put("id", c.getId());
+                    cObj.put("name", c.getName());
+                    cObj.put("parentId", c.getParentId() == null ? org.json.JSONObject.NULL : c.getParentId());
+                    catsArray.put(cObj);
+                }
+                root.put("categories", catsArray);
+
+                org.json.JSONArray cardsArray = new org.json.JSONArray();
+                for (com.ajj.memorizer.data.Flashcard f : flashcards) {
+                    org.json.JSONObject fObj = new org.json.JSONObject();
+                    fObj.put("q", f.getQuestion());
+                    fObj.put("a", f.getAnswer());
+                    fObj.put("catId", f.getCategoryId());
+                    fObj.put("stage", f.getIntervalStage());
+                    cardsArray.put(fObj);
+                }
+                root.put("flashcards", cardsArray);
+
+                File dir = new File(Environment.getExternalStorageDirectory(), "Memorizer");
+                if (!dir.exists()) dir.mkdirs();
+                File exportFile = new File(dir, "backup_" + System.currentTimeMillis() + ".json");
+                
+                java.io.FileWriter writer = new java.io.FileWriter(exportFile);
+                writer.write(root.toString(2));
+                writer.close();
+
+                runOnUiThread(() -> Toast.makeText(this, "Exported to: " + exportFile.getAbsolutePath(), Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, "Export failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        }).start();
     }
 
     private void showPasteJsonDialog() {
@@ -163,7 +211,8 @@ public class MainActivity extends AppCompatActivity {
     private void performImport(String json) {
         new Thread(() -> {
             try {
-                JsonImporter.importHierarchicalJson(AppDatabase.getDatabase(this), json);
+                Integer parentId = (currentCategoryId == -1) ? null : currentCategoryId;
+                JsonImporter.importHierarchicalJson(AppDatabase.getDatabase(this), json, parentId);
                 runOnUiThread(() -> Toast.makeText(this, "Import successful!", Toast.LENGTH_SHORT).show());
             } catch (JSONException e) {
                 runOnUiThread(() -> Toast.makeText(this, "Import failed: " + e.getMessage(), Toast.LENGTH_SHORT).show());

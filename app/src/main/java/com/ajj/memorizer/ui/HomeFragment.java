@@ -56,6 +56,11 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        // Reset context to root when on Home
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).setCurrentCategoryId(-1);
+        }
+
         observeData();
 
         return view;

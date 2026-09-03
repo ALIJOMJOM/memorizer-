@@ -20,6 +20,15 @@ public interface FlashcardDao {
     @Delete
     void delete(Flashcard flashcard);
 
+    @Insert
+    void insertAll(List<Flashcard> flashcards);
+
+    @Query("SELECT * FROM flashcards")
+    List<Flashcard> getAllCardsSync();
+
+    @Query("SELECT * FROM flashcards WHERE categoryId = :categoryId")
+    List<Flashcard> getCardsByCategorySync(int categoryId);
+
     @Query("SELECT * FROM flashcards WHERE nextReviewTimestamp <= :currentTime ORDER BY nextReviewTimestamp ASC")
     LiveData<List<Flashcard>> getDueCards(long currentTime);
 
@@ -52,4 +61,17 @@ public interface FlashcardDao {
 
     @Query("SELECT * FROM flashcards WHERE categoryId = :categoryId OR categoryId IN (SELECT id FROM categories WHERE parentId = :categoryId) ORDER BY id DESC")
     LiveData<List<Flashcard>> getAllCardsInHierarchy(int categoryId);
+    @Query("SELECT COUNT(*) FROM flashcards WHERE categoryId = :categoryId OR categoryId IN (SELECT id FROM categories WHERE parentId = :categoryId)")
+    int getCountInHierarchySync(int categoryId);
+    @Query("SELECT COUNT(*) FROM flashcards WHERE (categoryId IN (:ids)) AND nextReviewTimestamp <= :time")
+    int getDueCountInHierarchy(List<Integer> ids, long time);
+
+    @Query("SELECT COUNT(*) FROM flashcards WHERE (categoryId IN (:ids)) AND nextReviewTimestamp <= :time")
+    int getTotalCountInHierarchy(List<Integer> ids, long time);
+
+    @Query("SELECT COUNT(*) FROM flashcards WHERE (categoryId IN (:ids)) AND intervalStage >= 6 AND nextReviewTimestamp <= :time")
+    int getMasteredCountInHierarchy(List<Integer> ids, long time);
+
+    @Query("SELECT COUNT(*) FROM flashcards WHERE (categoryId IN (:ids)) AND intervalStage = :stage AND nextReviewTimestamp <= :time")
+    int getCountByStageInHierarchy(List<Integer> ids, int stage, long time);
 }

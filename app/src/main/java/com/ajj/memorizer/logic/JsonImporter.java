@@ -15,17 +15,16 @@ import java.util.List;
 
 public class JsonImporter {
 
-    public static void importHierarchicalJson(AppDatabase db, String jsonString) throws JSONException {
+    public static void importHierarchicalJson(AppDatabase db, String jsonString, Integer targetParentId) throws JSONException {
         JSONObject root = new JSONObject(jsonString);
         CategoryDao categoryDao = db.categoryDao();
         FlashcardDao flashcardDao = db.flashcardDao();
 
         if (root.has("subject")) {
             JSONObject subjectObj = root.getJSONObject("subject");
-            processCategory(categoryDao, flashcardDao, subjectObj, null);
+            processCategory(categoryDao, flashcardDao, subjectObj, targetParentId);
         } else if (root.has("chapter")) {
-            // Legacy support or direct chapter import
-            processCategory(categoryDao, flashcardDao, root.getJSONObject("chapter"), null);
+            processCategory(categoryDao, flashcardDao, root.getJSONObject("chapter"), targetParentId);
         }
     }
 
